@@ -224,14 +224,6 @@ ax.legend(loc="upper right", fontsize=12)
 ax.set_xticks([])
 
 plt.tight_layout()
-plt.savefig(plot_path + "prediction_interval.png", dpi=300)
+plt.savefig(plot_path + "mean_prediction_interval.png", dpi=300)
 plt.show()
 
-
-# Save Plot
-
-
-
-# %%
-
-# %%
