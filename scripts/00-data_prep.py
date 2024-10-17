@@ -10,8 +10,22 @@ def load_data():
 df = load_data()
 
 def clean_data(df):
+    """
+    Clean the housing data by dropping the id column, selecting only the numerical columns, and dropping any rows with missing values.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The housing data to clean.
+
+    Returns
+    -------
+    pd.DataFrame
+        The cleaned housing data.
+    """
     df.drop("Id", axis=1, inplace=True)
     df = df.select_dtypes(include=["float64", "int64"])
+    df.dropna(inplace=True)
     return df
 
 
