@@ -4,7 +4,6 @@ begin
 	using DecisionTree
 	using ConformalPrediction
 	using TidierPlots
-	using TidierData
 	using TidierFiles
 	import MLJDecisionTreeInterface
 	using Plots
@@ -39,20 +38,17 @@ begin
 end
 
 # ╔═╡ b5ef7486-0ddb-4d5f-a32a-f62c77749dea
-@bind selected_method Select(collect(keys(merge(values(available_models[:regression])...))))
+println("Available models: ", collect(keys(merge(values(available_models[:regression])...))))
 
 # ╔═╡ eb06ad7a-cf5e-41bb-8ff3-fba4b742107e
 begin
 	rf = random_forest()
-	conf_model = conformal_model(rf; method=selected_method)
+	conf_model = conformal_model(rf; method=:simple_inductive)
 	machine_raw = machine(conf_model, X, y)
 	MLJ.fit!(machine_raw, rows=train_ind)
 end
 
-# ╔═╡ 203287ac-cc07-4bb2-a015-bcdc333ae946
-md"""
-Now the conformal inference model
-"""
+
 
 # ╔═╡ ebce2255-2391-4e33-befe-a397f8bd0363
 begin
