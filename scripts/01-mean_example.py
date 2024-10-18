@@ -8,7 +8,7 @@ from typing import Tuple, List
 
 from sklearn.model_selection import train_test_split
 
-from utils import load_prep_data
+from utils import load_prep_data, check_coverage
 
 plot_path = "../plots/01_mean_example/"
 
@@ -117,16 +117,6 @@ class FullConformalMean:
         
         return (lower, upper)
     
-def check_coverage(
-    lower: np.ndarray,
-    upper: np.ndarray,
-    y: np.ndarray
-) -> float:
-    """
-    Checks the coverage rate of the prediction interval.
-    """
-    coverage = np.sum((y >= lower) & (y <= upper)) / len(y)
-    return coverage
 
 
 # %%

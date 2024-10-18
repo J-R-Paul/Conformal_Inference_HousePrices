@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 
 
@@ -38,3 +39,13 @@ def load_prep_data(
     return df
 
 
+def check_coverage(
+    lower: np.ndarray,
+    upper: np.ndarray,
+    y: np.ndarray
+) -> float:
+    """
+    Checks the coverage rate of the prediction interval.
+    """
+    coverage = np.sum((y >= lower) & (y <= upper)) / len(y)
+    return coverage
