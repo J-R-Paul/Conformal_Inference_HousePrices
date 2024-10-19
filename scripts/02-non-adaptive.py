@@ -24,7 +24,7 @@ X = df.drop("SalePrice", axis=1)
 # X = df["BedroomAbvGr"].to_numpy().reshape(-1, 1)
 y = np.log(df["SalePrice"])
 
-train_ind, cal_ind, test_ind = np.split(df.index, [int(0.6*len(df)), int(0.8*len(df))])
+train_ind, cal_ind, test_ind = np.split(df.sample(frac=1, random_state=42).index, [int(0.6*len(df)), int(0.8*len(df))])
 X_train, X_cal, X_test = X.iloc[train_ind], X.iloc[cal_ind], X.iloc[test_ind]
 y_train, y_cal, y_test = y.iloc[train_ind], y.iloc[cal_ind], y.iloc[test_ind]
 
