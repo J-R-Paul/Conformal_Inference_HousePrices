@@ -146,8 +146,11 @@ def print_grid(grid: List[List[str]]) -> None:
         grid (List[List[str]]): A 2D list representing the grid to be printed.
     """
     # Print the grid row by row with y increasing upwards
-    for row in reversed(grid):
-        print(''.join(row))
+    # for row in reversed(grid):
+        # print(''.join(row))
+
+    for row in grid:
+        print(''.join(row)) 
 
 
 # Example usage

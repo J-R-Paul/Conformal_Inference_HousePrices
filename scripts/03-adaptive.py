@@ -71,7 +71,7 @@ class PosEstim(LassoCV):
         return np.exp(y_pred)
 
 
-base_model = LGBMRegressor()
+base_model = LassoCV()
 
 base_model.fit(X_train, y_train)
 
@@ -84,8 +84,8 @@ residual_estimator.fit(X_res, np.abs(np.subtract(y_res, base_model.predict(X_res
 
 mapie = MapieRegressor(base_model, cv="prefit", 
                         conformity_score=ResidualNormalisedScore(
-                            # residual_estimator=residual_estimator,
-                            # prefit=True
+                            residual_estimator=residual_estimator,
+                            prefit=True
                         ))
 
 mapie.fit(X_cal, y_cal)
@@ -162,69 +162,3 @@ plt.show()
 # %%
 
 
-
-
-# %%
-import requests
-from bs4 import BeautifulSoup
-
-def get_google_doc_data(doc_url):
-    # Get the HTML content of the Google Doc
-    response = requests.get(doc_url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-
-    # Parse the content: locate the table in the HTML document
-    table_rows = soup.find_all('tr')  # Find all rows in the table
-    
-    # Initialize a list to store parsed data
-    grid_data = []
-    
-    for row in table_rows:
-        columns = row.find_all('td')  # Find all columns (td elements) in each row
-        if len(columns) == 3:  # Ensure there are 3 columns as expected (x, character, y)
-            x = int(columns[0].get_text())
-            char = columns[1].get_text().strip()  # Strip any extra whitespace
-            y = int(columns[2].get_text())
-            grid_data.append((x, char, y))
-    
-    return grid_data
-
-def create_grid_and_print(grid_data):
-    # Determine the size of the grid
-    max_x = max([x for x, _, _ in grid_data])
-    max_y = max([y for _, _, y in grid_data])
-    
-    # Create a blank grid initialized with spaces
-    grid = [[' ' for _ in range(max_y + 1)] for _ in range(max_x + 1)]
-    
-    # Populate the grid with characters from the data
-    for x, char, y in grid_data:
-        grid[x][y] = char
-    
-    # Print the grid
-    for row in grid:
-        print(''.join(row))
-
-def main(doc_url):
-    grid_data = get_google_doc_data(doc_url)
-    create_grid_and_print(grid_data)
-
-# Example usage
-doc_url = 'https://docs.google.com/document/d/e/2PACX-1vRMx5YQlZNa3ra8dYYxmv-QIQ3YJe8tbI3kqcuC7lQiZm-CSEznKfN_HYNSpoXcZIV3Y_O3YoUB1ecq/pub'  # Replace with actual doc URL
-get_google_doc_data(doc_url)
-# %%
-
-response = requests.get(doc_url)
-soup = BeautifulSoup(response.content, 'html.parser')
-
-# %%
-table_rows = soup.find_all('tr')
-for row in table_rows:
-    columns = row.find_all('td')  # Find all columns (td elements) in each row
-    if len(columns) == 3:  # Ensure there are 3 columns as expected (x, character, y)
-        # x = int(columns[0].get_text())
-        print(columns[0].get_text())
-        # char = columns[1].get_text().strip()  # Strip any extra whitespace
-        # y = int(columns[2].get_text())
-        # grid_data.append((x, char, y))
-# %%
