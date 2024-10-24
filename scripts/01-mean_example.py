@@ -143,7 +143,11 @@ print(f"Upper: {upper}")
 print(f"Coverage on test data: {coverage}")
 
 # %%
+# Get qhat value
+print(f"qhat: {np.abs(np.mean(y_train) -  lower)}")
+print(f"Mean: {np.mean(y_train)}")
 
+# %%
 # ------------------------------------------------------------------------------
 # Plot the prediction interval
 # ------------------------------------------------------------------------------

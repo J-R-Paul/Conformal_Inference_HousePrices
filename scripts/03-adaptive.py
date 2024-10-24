@@ -11,6 +11,7 @@ from mapie.metrics import (regression_coverage_score,
                            regression_mean_width_score)
 from mapie.regression import MapieQuantileRegressor, MapieRegressor
 from mapie.subsample import Subsample
+from skimpy import Skimpy
 
 
 df = load_prep_data()
