@@ -188,6 +188,19 @@ wheels = [
 ]
 
 [[package]]
+name = "crepes"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "pandas" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/be/28/5e2616e64d81b68f2b0f4643b89bc91dedb230d192a986dc63b900f56684/crepes-0.7.1.tar.gz", hash = "sha256:aa92d6abdb0f8c8bda7757bbc6e0e2a5230e68dda93241f1ae48fedf77895881", size = 35272 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/26/8e/27dc716aafd756cdaf40133e19dcdfc856f4a350d66165bc5eb5c7db9acd/crepes-0.7.1-py3-none-any.whl", hash = "sha256:144b213a097b48665b41486a18a2a24d57dc50e019748323fe565fd240360588", size = 29679 },
+]
+
+[[package]]
 name = "cycler"
 version = "0.12.1"
 source = { registry = "https://pypi.org/simple" }
@@ -949,6 +962,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "bs4" },
+    { name = "crepes" },
     { name = "ipykernel" },
     { name = "jinja2" },
     { name = "lightgbm" },
@@ -965,6 +979,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "bs4", specifier = ">=0.0.2" },
+    { name = "crepes", specifier = ">=0.7.1" },
     { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "jinja2", specifier = ">=3.1.4" },
     { name = "lightgbm", specifier = ">=4.5.0" },

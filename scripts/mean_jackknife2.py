@@ -274,3 +274,134 @@ print(f"include: {L_lower_j <= trial <= L_upper_j}")
 
 # %%
 trial
+
+
+# %%
+import numpy as np
+
+def vovk_include(nonconf_scores, trial_score, alpha):
+    n = len(nonconf_scores)
+    p_value = np.sum(nonconf_scores >= trial_score) / (n + 1)
+    return p_value > alpha
+
+def rank_include(nonconf_scores, trial_score, alpha):
+    n = len(nonconf_scores)
+    rank = np.sum(nonconf_scores <= trial_score)
+    threshold = np.ceil((1-alpha)*(n+1))
+    return rank <= threshold
+
+# Simple Monte Carlo
+np.random.seed(42)
+n = 100  # calibration set size
+alpha = 0.05  # significance level
+
+# Generate some random nonconformity scores
+n_trials = 1000
+differences = 0
+
+for _ in range(n_trials):
+    nonconf_scores = np.random.randn(n)
+    trial_score = np.random.randn()
+    
+    vovk_decision = vovk_include(nonconf_scores, trial_score, alpha)
+    rank_decision = rank_include(nonconf_scores, trial_score, alpha)
+    
+    if vovk_decision != rank_decision:
+        differences += 1
+        
+        # Let's examine a few cases where they differ
+        if differences <= 3:  # Just look at first 3 differences
+            print("\nFound difference:")
+            print(f"Trial score: {trial_score}")
+            print(f"Vovk p-value: {np.sum(nonconf_scores >= trial_score)/(n+1)}")
+            print(f"Rank: {np.sum(nonconf_scores <= trial_score)}")
+            print(f"Threshold for rank: {np.ceil((1-alpha)*(n+1))}")
+            print(f"Vovk decision: {vovk_decision}")
+            print(f"Rank decision: {rank_decision}")
+
+print(f"\nTotal differences: {differences} out of {n_trials} trials ({100*differences/n_trials:.2f}%)")
+# %%
+import numpy as np
+
+def vovk_include(nonconf_scores, trial_score, alpha):
+    n = len(nonconf_scores)
+    p_value = np.sum(nonconf_scores >= trial_score) / (n + 1)
+    return p_value > alpha
+
+def rank_include(nonconf_scores, trial_score, alpha):
+    n = len(nonconf_scores)
+    rank = np.sum(nonconf_scores <= trial_score)
+    threshold = np.ceil((1-alpha)*(n+1))
+    return rank <= threshold
+
+# Monte Carlo to check coverage and interval width
+np.random.seed(42)
+n = 100  # calibration set size
+alpha = 0.1  # significance level
+n_trials = 1000
+
+# We'll generate data from standard normal for simplicity
+vovk_coverage = 0
+rank_coverage = 0
+vovk_widths = []
+rank_widths = []
+
+for _ in range(n_trials):
+    # Generate calibration data
+    cal_scores = np.random.randn(n)
+    # True value we want to cover
+    true_value = np.random.randn()
+    
+    # Check coverage by testing a grid of points
+    grid = np.linspace(true_value-5, true_value+5, 200)
+    
+    vovk_set = [y for y in grid if vovk_include(cal_scores, y, alpha)]
+    rank_set = [y for y in grid if rank_include(cal_scores, y, alpha)]
+    
+    # Check coverage
+    vovk_coverage += min(vovk_set) <= true_value <= max(vovk_set)
+    rank_coverage += min(rank_set) <= true_value <= max(rank_set)
+    
+    # Record widths
+    vovk_widths.append(max(vovk_set) - min(vovk_set))
+    rank_widths.append(max(rank_set) - min(rank_set))
+
+print(f"Vovk method coverage: {vovk_coverage/n_trials:.3f}")
+print(f"Rank method coverage: {rank_coverage/n_trials:.3f}")
+print(f"Vovk method average width: {np.mean(vovk_widths):.3f}")
+print(f"Rank method average width: {np.mean(rank_widths):.3f}")
+# %%
+import numpy as np
+import matplotlib.pyplot as plt
+np.random.seed(42)
+
+# Parameters
+n = 100  # number of points to visualize
+threshold = 5  # our (1-alpha)(n+1) threshold
+trials = 1000  # number of random trials for each point
+
+# Generate some C values around the threshold
+C_values = np.linspace(threshold-1, threshold+1, n)
+
+# Sharp cutoff (p-trial method)
+sharp_inclusion = C_values < threshold
+
+# Smoothed version
+smoothed_inclusions = np.zeros(n)
+for i, C in enumerate(C_values):
+    taus = np.random.uniform(0, 1, trials)
+    smoothed_inclusions[i] = np.mean(C + taus < threshold)
+
+# Plotting
+plt.figure(figsize=(10, 6))
+plt.plot(C_values, sharp_inclusion, 'b-', label='Sharp cutoff', alpha=0.5)
+plt.plot(C_values, smoothed_inclusions, 'r-', label='Smoothed (randomized)')
+plt.axvline(x=threshold, color='gray', linestyle='--', alpha=0.5, label='Threshold')
+plt.xlabel('C value')
+plt.ylabel('Probability of inclusion')
+plt.title(f'Sharp vs Smoothed Cutoff at threshold = {threshold}')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+# %%
