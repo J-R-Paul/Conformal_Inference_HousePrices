@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import norm
 
+from lightgbm import LGBMRegressor
+
 from utils import load_prep_data, check_coverage
 
 from sklearn.linear_model import LinearRegression, LassoCV
@@ -85,77 +87,85 @@ for strategy, params in STRATEGIES.items():
         mapie.fit(X_train, y_train, random_state=1)
         y_pred[strategy], y_pis[strategy] = mapie.predict(X_test)
     else:
-        mapie = MapieRegressor(lasso_model, **params)
+        mapie = MapieRegressor(LGBMRegressor(verbose=-1), **params)
         mapie.fit(X_train, y_train)
         y_pred[strategy], y_pis[strategy] = mapie.predict(X_test, alpha=0.05)
 
 # %%
+def calculate_metrics(y_true, y_pred, y_pis):
+    """Calculate coverage and average interval length."""
+    lower = y_pis[:, 0, 0]
+    upper = y_pis[:, 1, 0]
+    
+    # Calculate coverage
+    coverage = np.mean((y_true >= lower) & (y_true <= upper))
+    
+    # Calculate average interval length
+    avg_length = np.mean(upper - lower)
+    
+    return coverage, avg_length
 
-def plot_prediction_intervals(
-    X_train,
-    y_train,
-    X_test,
-    y_test,
-    y_pred,
-    y_pred_low,
-    y_pred_up,
-    ax,
-    title=None
-):
-    """Plot prediction intervals with a minimal, clean style."""
-    # Sort arrays by X values for smooth plotting
-    sort_idx = np.argsort(X_test)
-    X_test_sorted = X_test[sort_idx]
+def plot_prediction_vs_true(y_true, y_pred, y_pis, ax, title=None):
+    """Plot predictions vs true values with prediction intervals."""
+    # Sort by true values for better visualization
+    sort_idx = np.argsort(y_true)
+    y_true_sorted = y_true[sort_idx]
     y_pred_sorted = y_pred[sort_idx]
-    y_pred_low_sorted = y_pred_low[sort_idx]
-    y_pred_up_sorted = y_pred_up[sort_idx]
+    y_lower_sorted = y_pis[sort_idx, 0, 0]
+    y_upper_sorted = y_pis[sort_idx, 1, 0]
     
     # Plot prediction intervals
     ax.fill_between(
-        X_test_sorted, 
-        y_pred_low_sorted, 
-        y_pred_up_sorted,
+        range(len(y_true)),
+        y_lower_sorted,
+        y_upper_sorted,
         alpha=0.2,
         label='Prediction Interval'
     )
     
-    # Plot training points and prediction line
-    ax.scatter(X_train, y_train, color='black', alpha=0.5, s=20, label='Training Data')
-    ax.plot(X_test_sorted, y_pred_sorted, color='blue', lw=2, label='Prediction')
-    
-    if y_test is not None:
-        ax.plot(X_test_sorted, y_test[sort_idx], color='red', ls='--', alpha=0.7, label='True Values')
+    # Plot true values and predictions
+    ax.plot(range(len(y_true)), y_true_sorted, 'r--', label='True Values', alpha=0.7)
+    ax.plot(range(len(y_true)), y_pred_sorted, 'b-', label='Predictions', linewidth=2)
     
     ax.set_title(title, fontsize=10, pad=10)
     ax.grid(True, alpha=0.3)
     if ax.is_last_row():
-        ax.set_xlabel('X')
+        ax.set_xlabel('Sample Index (sorted by true value)')
     if ax.is_first_col():
-        ax.set_ylabel('y')
+        ax.set_ylabel('Value')
     
     # Add legend only to the first plot
-    if title == list(STRATEGIES.keys())[0]:
+    if title == list(STRATEGIES.keys())[0].replace('_', ' ').title():
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+
+# Calculate and display metrics
+print("\nPerformance Metrics:")
+print("-" * 50)
+print(f"{'Strategy':<35} {'Coverage':>10} {'Avg Length':>12}")
+print("-" * 50)
+for strategy in STRATEGIES.keys():
+    coverage, avg_length = calculate_metrics(
+        y_test.ravel(),
+        y_pred[strategy].ravel(),
+        y_pis[strategy]
+    )
+    print(f"{strategy.replace('_', ' ').title():<35} {coverage:>10.3f} {avg_length:>12.3f}")
 
 # Create subplot grid
 n_strategies = len(STRATEGIES)
 n_rows = (n_strategies + 1) // 2
 fig, axs = plt.subplots(n_rows, 2, figsize=(12, 4*n_rows))
-fig.suptitle('Prediction Intervals with Different Conformal Methods', y=1.02)
+fig.suptitle('Predictions vs True Values with Prediction Intervals', y=1.02)
 
 # Flatten axs array for easier iteration
 axs_flat = axs.ravel()
 
 # Plot each strategy
 for idx, (strategy, ax) in enumerate(zip(STRATEGIES.keys(), axs_flat)):
-    plot_prediction_intervals(
-        X_train.ravel(),
-        y_train.ravel(),
-        X_test.ravel(),
-        y_test.ravel() if y_test is not None else None,
+    plot_prediction_vs_true(
+        y_test.ravel(),
         y_pred[strategy].ravel(),
-        y_pis[strategy][:, 0, 0].ravel(),
-        y_pis[strategy][:, 1, 0].ravel(),
+        y_pis[strategy],
         ax=ax,
         title=strategy.replace('_', ' ').title()
     )
