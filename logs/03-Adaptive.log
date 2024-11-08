@@ -1,0 +1,20 @@
+2024-11-08 14:44:37,454 - INFO - Loading and preparing data
+2024-11-08 14:44:37,468 - INFO - Data columns: Index(['1', 'MSSubClass', 'LotFrontage', 'LotArea', 'OverallQual',
+       'OverallCond', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'BsmtFinSF1',
+       ...
+       'PoolArea MiscVal', 'PoolArea MoSold', 'PoolArea YrSold', 'MiscVal^2',
+       'MiscVal MoSold', 'MiscVal YrSold', 'MoSold^2', 'MoSold YrSold',
+       'YrSold^2', 'SalePrice'],
+      dtype='object', length=704)
+2024-11-08 14:44:37,511 - INFO - First few rows of data:      1  MSSubClass  LotFrontage  LotArea  OverallQual  OverallCond  YearBuilt  YearRemodAdd  ...  PoolArea YrSold  MiscVal^2  MiscVal MoSold  MiscVal YrSold  MoSold^2  MoSold YrSold   YrSold^2  SalePrice
+0  1.0        60.0         65.0   8450.0          7.0          5.0     2003.0        2003.0  ...              0.0        0.0             0.0             0.0       4.0         4016.0  4032064.0     208500
+1  1.0        20.0         80.0   9600.0          6.0          8.0     1976.0        1976.0  ...              0.0        0.0             0.0             0.0      25.0        10035.0  4028049.0     181500
+2  1.0        60.0         68.0  11250.0          7.0          5.0     2001.0        2002.0  ...              0.0        0.0             0.0             0.0      81.0        18072.0  4032064.0     223500
+3  1.0        70.0         60.0   9550.0          7.0          5.0     1915.0        1970.0  ...              0.0        0.0             0.0             0.0       4.0         4012.0  4024036.0     140000
+4  1.0        60.0         84.0  14260.0          8.0          5.0     2000.0        2000.0  ...              0.0        0.0             0.0             0.0     144.0        24096.0  4032064.0     250000
+
+[5 rows x 704 columns]
+2024-11-08 14:44:37,512 - INFO - Splitting data into training, calibration, and testing sets
+2024-11-08 14:44:37,514 - INFO - Scaling features
+2024-11-08 14:44:37,523 - INFO - Running LassoCV to get alpha
+2024-11-08 14:45:01,855 - INFO - Alpha from LassoCV: 0.009105993492475017

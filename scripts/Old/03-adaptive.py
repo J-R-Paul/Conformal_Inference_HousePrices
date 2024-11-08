@@ -12,40 +12,54 @@ from mapie.metrics import (regression_coverage_score,
 from mapie.regression import MapieQuantileRegressor, MapieRegressor
 from mapie.subsample import Subsample
 from skimpy import Skimpy
+import os
+import logging
+import seaborn as sns
+import pickle as pkl
+from sklearn.preprocessing import PolynomialFeatures
+from utils import load_prep_data, train_cal_test_split
 
+# Ensure the logs directory exists
+log_dir = '../logs'
+os.makedirs(log_dir, exist_ok=True)
 
-df = load_prep_data()
+# Set up logging
+logging.basicConfig(filename=os.path.join(log_dir, '02-Non-Adaptive.log'), level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Choose the features for X
-# features = ["BedroomAbvGr"]  # 
-# X = df[features]
+# %%
+# Load and prepare data
+logging.info("Loading and preparing data")
+df = load_prep_data(polynomial=True)
+
+# Display initial data information
+logging.info(f"Data columns: {df.columns}")
+logging.info(f"First few rows of data: {df.head()}")
+
+# Prepare features and target variable
 X = df.drop("SalePrice", axis=1)
 y = np.log(df["SalePrice"])
 
-# Split the data
-train_ind, test_ind = np.split(df.sample(frac=1, random_state=122).index, [int(0.95*len(df))])
+# Split data into training, calibration, and testing sets
+logging.info("Splitting data into training, calibration, and testing sets")
+X_train, X_cal, X_test, y_train, y_cal, y_test = train_cal_test_split(X, y, test_size=0.2, cal_size=0.2, random_state=42)
+# train_ind, cal_ind, test_ind = np.split(
+#     df.sample(frac=1, random_state=42).index,
+#     [int(0.6 * len(df)), int(0.8 * len(df))]
+# )
+# X_train, X_cal, X_test = X.iloc[train_ind], X.iloc[cal_ind], X.iloc[test_ind]
+# y_train, y_cal, y_test = y.iloc[train_ind], y.iloc[cal_ind], y.iloc[test_ind]
 
-# Function to select data based on indices
-def select_data(data, indices):
-    return data.iloc[indices] if isinstance(data, pd.DataFrame) else data[indices]
-
-X_train, X_test = [select_data(X, ind) for ind in (train_ind, test_ind)]
-y_train, y_test = [select_data(y, ind) for ind in (train_ind, test_ind)]
-
-# Reshape X if it's a single feature
-if X.shape[1] == 1:
-    X_train = X_train.values.reshape(-1, 1)
-    X_test = X_test.values.reshape(-1, 1)
-
-# Split train intp train and cal
-X_train, X_cal, y_train, y_cal = train_test_split(X_train, y_train, test_size=0.2, random_state=1242)
-X_train, X_res, y_train, y_res = train_test_split(X_train, y_train, test_size=0.2, random_state=1242)
-
-
+# Scale features
+logging.info("Scaling features")
 scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_cal = scaler.transform(X_cal)
 X_test = scaler.transform(X_test)
+
+# Set style for clean plots
+plt.style.use('seaborn-v0_8-whitegrid')
+sns.set_palette("husl")
 
 
 # %%

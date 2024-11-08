@@ -93,10 +93,10 @@ logging.info("Defining strategies for MapieRegressor")
 STRATEGIES = {
     "naive": dict(method="naive"),
     "split": dict(cv="prefit", method="base"),
-    "jackknife": dict(method="base", cv=-1),
-    "jackknife_plus": dict(method="plus", cv=-1),
-    "cv_plus": dict(method="plus", cv=10),
-    "jackknife_plus_ab": dict(method="plus", cv=Subsample(n_resamplings=50)),
+    "jackknife": dict(method="base", cv=-1, n_jobs=-1),
+    "jackknife_plus": dict(method="plus", cv=-1, n_jobs=-1),
+    "cv_plus": dict(method="plus", cv=10, n_jobs=-1),
+    "jackknife_plus_ab": dict(method="plus", cv=Subsample(n_resamplings=50), n_jobs=-1),
 }
 
 # Fit models and get predictions
@@ -104,19 +104,19 @@ logging.info("Fitting models and getting predictions for each strategy")
 y_pred, y_pis = {}, {}
 for strategy, params in STRATEGIES.items():
     logging.info(f"Processing strategy: {strategy}")
-    if strategy == "split":
-        # If split, we use the lass_cv model which is already fitted
-        mapie = MapieRegressor(lasso_cv, cv="prefit", method="base")
-        mapie.fit(X_cal, y_cal)
-        y_pred[strategy], y_pis[strategy] = mapie.predict(X_test, alpha=0.05)
-    else:
-        logging.info(f"Combining test with calibration data for strategy: {strategy}")
-        # Combine test with calibration data
-        X_test_cal = np.vstack([X_test, X_cal])
-        y_test_cal = np.concatenate([y_test, y_cal])
-        mapie = MapieRegressor(Lasso(alpha=alpha), **params)
-        mapie.fit(X_test_cal, y_test_cal)
-        y_pred[strategy], y_pis[strategy] = mapie.predict(X_test, alpha=0.05)
+    # if strategy == "split":
+    #     # If split, we use the lass_cv model which is already fitted
+    #     mapie = MapieRegressor(lasso_cv, cv="prefit", method="base")
+    #     mapie.fit(X_cal, y_cal)
+    #     y_pred[strategy], y_pis[strategy] = mapie.predict(X_test, alpha=0.05)
+    # else:
+    logging.info(f"Combining test with calibration data for strategy: {strategy}")
+    # Combine test with calibration data
+    X_test_cal = np.vstack([X_test, X_cal])
+    y_test_cal = np.concatenate([y_test, y_cal])
+    mapie = MapieRegressor(Lasso(alpha=alpha), **params)
+    mapie.fit(X_test_cal, y_test_cal)
+    y_pred[strategy], y_pis[strategy] = mapie.predict(X_test, alpha=0.05)
 
 # Pickle results
 path = "../pickles/02-Non-Adaptive.pkl"
