@@ -21,90 +21,59 @@ import pickle as pkl
 
 from lightgbm import LGBMRegressor
 
-from utils import load_prep_data, check_coverage, plot_predictions_with_ci
+from utils import load_prep_data, check_coverage, plot_predictions_with_ci, train_cal_test_split
+
+# %% Load Data
+df = load_prep_data(polynomial=True)
 
 
-# %%
-# Load results
+
+# Prepare features and target variable
+X = df.drop("SalePrice", axis=1)
+y = np.log(df["SalePrice"])
+
+# Split data into training, calibration, and testing sets
+X_train, X_cal, X_test, y_train, y_cal, y_test = train_cal_test_split(X, y, test_size=0.2, cal_size=0.2, random_state=42)
+
+# Standard scalar
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_cal = scaler.transform(X_cal)
+X_test = scaler.transform(X_test)
+
+# Set style for clean plots
+plt.style.use('seaborn-v0_8-whitegrid')
+sns.set_palette("husl")
+# %% Load results
+# 
 path = "../pickles/02-Non-Adaptive.pkl"
 with open(path, "rb") as f:
     y_pred, y_pis, STRATEGIES = pkl.load(f)
 
-# %%
-squeezed_array = np.squeeze(y_pis['cv_plus'], axis=-1)
-y_temp = np.ravel(y_pred['cv_plus'])
-y_lower = y_temp - squeezed_array[:, 0] 
-y_upper = squeezed_array[:, 1] - y_temp
+def clean_results(y_pred, y_pis, y_test, strategy):
+    residual = y_pred[strategy] - (y_pis[strategy][:, 1, 0] + y_pis[strategy][:, 0, 0])/2
+    outliers = np.where(np.abs(residual) > 0.5)
+    y_pred_s = np.delete(y_pred[strategy], outliers)
+    y_pis_s = np.delete(y_pis[strategy], outliers, axis=0)
+    y_test_s = np.delete(y_test, outliers)
+    
+    # take upper and lower
+    y_lower = y_pred_s - y_pis_s[:, 0, 0]
+    y_upper = y_pis_s[:, 1, 0] - y_pred_s
+    return y_pred_s, y_test_s, y_lower, y_upper
 
 # %%
-len(y_pred)
-# %%
 # Create figure with subplots
-fig, ax = plt.subplots(len(y_pred)+1 , 1, figsize=(12,30))
-names = ["Naive", "CV+", "Jackknife", "Jackknife+", "Jackknife+AB", "Split"]
+fig, ax = plt.subplots(len(y_pred) , 1, figsize=(12,30))
+names = STRATEGIES.keys()
 for strategy, axi, title in zip(STRATEGIES.keys(), ax, names):
-    y_temp = np.ravel(y_pred[strategy])
-    y_lower = y_temp - y_pis[strategy][:, 0, 0]
-    y_upper = y_pis[strategy][:, 1, 0] - y_temp
+    y_p_i, y_test_i, y_lower_i, y_upper_i = clean_results(y_pred, y_pis, y_test, strategy)
     # Plot predictions with confidence intervals
-    plot_predictions_with_ci(y_test, y_temp, y_lower, y_upper, ax=axi, title=title)
+    plot_predictions_with_ci(y_test_i, y_p_i, y_lower_i, y_upper_i, ax=axi, title=title)
 
 
 # plt.tight_layout()
 plt.show()
-# %%
-def plot_predictions_with_ci(y_test, y_pred, ci_lower, ci_upper, ax=None, title="Predictions vs True Values"):
-    """
-    Plot predictions with confidence intervals, highlighting those that don't contain the true value.
-    """
-    if ax is None:
-        ax = plt.gca()
-    
-    # Convert to numpy arrays if they aren't already
-    y_test = np.array(y_test)
-    y_pred = np.array(y_pred)
-    ci_lower = np.array(ci_lower)
-    ci_upper = np.array(ci_upper)
-    
-    # Create scatter plot
-    sns.scatterplot(x=y_test, y=y_pred, label="Predictions", ax=ax)
-    
-    # Create boolean mask for points where true value is outside CI
-    outside_ci = (y_test < (y_pred - ci_lower)) | (y_test > (y_pred + ci_upper))
-    
-    # Calculate coverage and average interval length
-    coverage = (1 - outside_ci.mean()) * 100  # Convert to percentage
-    avg_interval_length = np.mean(ci_upper + ci_lower)
-    
-    # Plot CIs that contain true value (gray)
-    ax.errorbar(y_test[~outside_ci], y_pred[~outside_ci], 
-               yerr=[ci_lower[~outside_ci], ci_upper[~outside_ci]], 
-               fmt='o', ecolor='gray', alpha=0.5, label='CI (True Value Inside)')
-    
-    # Plot CIs that don't contain true value (red)
-    ax.errorbar(y_test[outside_ci], y_pred[outside_ci], 
-               yerr=[ci_lower[outside_ci], ci_upper[outside_ci]], 
-               fmt='o', ecolor='red', alpha=0.5, label='CI (True Value Outside)')
-    
-    # Add diagonal line for reference
-    min_val = min(min(y_test), min(y_pred))
-    max_val = max(max(y_test), max(y_pred))
-    ax.plot([min_val, max_val], [min_val, max_val], 'k--', alpha=0.5)
-    
-    # Labels and title
-    ax.set_xlabel('True Values')
-    ax.set_ylabel('Predicted Values')
-    ax.set_title(title)
-    ax.legend()
-    
-    # Add coverage and interval length annotation
-    annotation_text = f'Coverage: {coverage:.1f}%\nAvg Interval Length: {avg_interval_length:.2f}'
-    ax.annotate(annotation_text,
-                xy=(0.98, 0.02),  # Position in axes coordinates
-                xycoords='axes fraction',
-                bbox=dict(facecolor='white', edgecolor='gray', alpha=0.8),
-                ha='right',  # Horizontal alignment
-                va='bottom')  # Vertical alignment
-    
-    return ax
+
+
 # %%

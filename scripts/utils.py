@@ -68,7 +68,7 @@ def sort_y_values(y_test, y_pred, y_pis):
     return y_test_sorted, y_pred_sorted, y_lower_bound, y_upper_bound
 
 
-def train_cal_test_split(X, y, test_size=0.2, cal_size=0.2, random_state=None):
+def train_cal_test_split(X, y, test_size=0.2, cal_size=0.2, random_state=42):
     """
     Split arrays or matrices into train, calibration, and test subsets.
     
@@ -153,6 +153,7 @@ def train_cal_test_split(X, y, test_size=0.2, cal_size=0.2, random_state=None):
         y_test = y[test_idx]
     
     return X_train, X_cal, X_test, y_train, y_cal, y_test
+
 
 class QuantileRegressorCV(QuantileRegressor):
     def __init__(self, alphas=None, cv=5, quantile=0.5, **kwargs):

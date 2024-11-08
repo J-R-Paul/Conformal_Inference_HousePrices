@@ -14,7 +14,7 @@ from mapie.subsample import Subsample
 
 import pickle as pkl
 
-from utils import load_prep_data
+from utils import load_prep_data, train_cal_test_split
 
 import logging
 import os
@@ -42,12 +42,13 @@ y = np.log(df["SalePrice"])
 
 # Split data into training, calibration, and testing sets
 logging.info("Splitting data into training, calibration, and testing sets")
-train_ind, cal_ind, test_ind = np.split(
-    df.sample(frac=1, random_state=42).index,
-    [int(0.6 * len(df)), int(0.8 * len(df))]
-)
-X_train, X_cal, X_test = X.iloc[train_ind], X.iloc[cal_ind], X.iloc[test_ind]
-y_train, y_cal, y_test = y.iloc[train_ind], y.iloc[cal_ind], y.iloc[test_ind]
+X_train, X_cal, X_test, y_train, y_cal, y_test = train_cal_test_split(X, y, test_size=0.2, cal_size=0.2, random_state=42)
+# train_ind, cal_ind, test_ind = np.split(
+#     df.sample(frac=1, random_state=42).index,
+#     [int(0.6 * len(df)), int(0.8 * len(df))]
+# )
+# X_train, X_cal, X_test = X.iloc[train_ind], X.iloc[cal_ind], X.iloc[test_ind]
+# y_train, y_cal, y_test = y.iloc[train_ind], y.iloc[cal_ind], y.iloc[test_ind]
 
 # Scale features
 logging.info("Scaling features")
