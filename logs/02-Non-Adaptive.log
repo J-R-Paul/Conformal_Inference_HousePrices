@@ -1,0 +1,72 @@
+2024-11-08 10:37:40,952 - INFO - Loading and preparing data
+2024-11-08 10:37:40,966 - INFO - Data columns: Index(['1', 'MSSubClass', 'LotFrontage', 'LotArea', 'OverallQual',
+       'OverallCond', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'BsmtFinSF1',
+       ...
+       'PoolArea MiscVal', 'PoolArea MoSold', 'PoolArea YrSold', 'MiscVal^2',
+       'MiscVal MoSold', 'MiscVal YrSold', 'MoSold^2', 'MoSold YrSold',
+       'YrSold^2', 'SalePrice'],
+      dtype='object', length=704)
+2024-11-08 10:37:41,023 - INFO - First few rows of data:      1  MSSubClass  LotFrontage  LotArea  OverallQual  OverallCond  YearBuilt  YearRemodAdd  MasVnrArea  BsmtFinSF1  ...  PoolArea MiscVal  PoolArea MoSold  PoolArea YrSold  MiscVal^2  MiscVal MoSold  MiscVal YrSold  MoSold^2  MoSold YrSold   YrSold^2  SalePrice
+0  1.0        60.0         65.0   8450.0          7.0          5.0     2003.0        2003.0       196.0       706.0  ...               0.0              0.0              0.0        0.0             0.0             0.0       4.0         4016.0  4032064.0     208500
+1  1.0        20.0         80.0   9600.0          6.0          8.0     1976.0        1976.0         0.0       978.0  ...               0.0              0.0              0.0        0.0             0.0             0.0      25.0        10035.0  4028049.0     181500
+2  1.0        60.0         68.0  11250.0          7.0          5.0     2001.0        2002.0       162.0       486.0  ...               0.0              0.0              0.0        0.0             0.0             0.0      81.0        18072.0  4032064.0     223500
+3  1.0        70.0         60.0   9550.0          7.0          5.0     1915.0        1970.0         0.0       216.0  ...               0.0              0.0              0.0        0.0             0.0             0.0       4.0         4012.0  4024036.0     140000
+4  1.0        60.0         84.0  14260.0          8.0          5.0     2000.0        2000.0       350.0       655.0  ...               0.0              0.0              0.0        0.0             0.0             0.0     144.0        24096.0  4032064.0     250000
+
+[5 rows x 704 columns]
+2024-11-08 10:37:41,024 - INFO - Splitting data into training, calibration, and testing sets
+2024-11-08 10:37:41,031 - INFO - Scaling features
+2024-11-08 10:37:41,043 - INFO - Running LassoCV to get alpha
+2024-11-08 10:38:05,319 - INFO - Alpha from LassoCV: 0.009105993492475017
+2024-11-08 10:38:05,319 - INFO - Defining and fitting WrapRegressor model
+2024-11-08 10:38:05,436 - INFO - Predicting intervals and base predictions
+2024-11-08 10:38:05,437 - INFO - Defining strategies for MapieRegressor
+2024-11-08 10:38:05,437 - INFO - Fitting models and getting predictions for each strategy
+2024-11-08 10:38:05,437 - INFO - Processing strategy: naive
+2024-11-08 10:38:05,437 - INFO - Combining test with calibration data for strategy: naive
+2024-11-08 10:38:05,505 - INFO - Processing strategy: split
+2024-11-08 10:38:05,506 - INFO - Processing strategy: jackknife
+2024-11-08 10:38:05,506 - INFO - Combining test with calibration data for strategy: jackknife
+2024-11-08 10:38:35,653 - INFO - Processing strategy: jackknife_plus
+2024-11-08 10:38:35,655 - INFO - Combining test with calibration data for strategy: jackknife_plus
+2024-11-08 10:39:06,069 - INFO - Processing strategy: cv_plus
+2024-11-08 10:39:06,069 - INFO - Combining test with calibration data for strategy: cv_plus
+2024-11-08 10:39:06,725 - INFO - Processing strategy: jackknife_plus_ab
+2024-11-08 10:39:06,725 - INFO - Combining test with calibration data for strategy: jackknife_plus_ab
+2024-11-08 10:39:10,179 - INFO - Saving results to ../pickles/02-Non-Adaptive.pkl
+2024-11-08 10:39:10,181 - INFO - Results successfully saved to ../pickles/02-Non-Adaptive.pkl
+2024-11-08 10:44:45,681 - INFO - Loading and preparing data
+2024-11-08 10:44:45,691 - INFO - Data columns: Index(['1', 'MSSubClass', 'LotFrontage', 'LotArea', 'OverallQual',
+       'OverallCond', 'YearBuilt', 'YearRemodAdd', 'MasVnrArea', 'BsmtFinSF1',
+       ...
+       'PoolArea MiscVal', 'PoolArea MoSold', 'PoolArea YrSold', 'MiscVal^2',
+       'MiscVal MoSold', 'MiscVal YrSold', 'MoSold^2', 'MoSold YrSold',
+       'YrSold^2', 'SalePrice'],
+      dtype='object', length=704)
+2024-11-08 10:44:45,747 - INFO - First few rows of data:      1  MSSubClass  LotFrontage  LotArea  OverallQual  OverallCond  YearBuilt  YearRemodAdd  MasVnrArea  BsmtFinSF1  ...  PoolArea MiscVal  PoolArea MoSold  PoolArea YrSold  MiscVal^2  MiscVal MoSold  MiscVal YrSold  MoSold^2  MoSold YrSold   YrSold^2  SalePrice
+0  1.0        60.0         65.0   8450.0          7.0          5.0     2003.0        2003.0       196.0       706.0  ...               0.0              0.0              0.0        0.0             0.0             0.0       4.0         4016.0  4032064.0     208500
+1  1.0        20.0         80.0   9600.0          6.0          8.0     1976.0        1976.0         0.0       978.0  ...               0.0              0.0              0.0        0.0             0.0             0.0      25.0        10035.0  4028049.0     181500
+2  1.0        60.0         68.0  11250.0          7.0          5.0     2001.0        2002.0       162.0       486.0  ...               0.0              0.0              0.0        0.0             0.0             0.0      81.0        18072.0  4032064.0     223500
+3  1.0        70.0         60.0   9550.0          7.0          5.0     1915.0        1970.0         0.0       216.0  ...               0.0              0.0              0.0        0.0             0.0             0.0       4.0         4012.0  4024036.0     140000
+4  1.0        60.0         84.0  14260.0          8.0          5.0     2000.0        2000.0       350.0       655.0  ...               0.0              0.0              0.0        0.0             0.0             0.0     144.0        24096.0  4032064.0     250000
+
+[5 rows x 704 columns]
+2024-11-08 10:44:45,748 - INFO - Splitting data into training, calibration, and testing sets
+2024-11-08 10:44:45,751 - INFO - Scaling features
+2024-11-08 10:44:45,765 - INFO - Running LassoCV to get alpha
+2024-11-08 10:45:10,205 - INFO - Alpha from LassoCV: 0.009105993492475017
+2024-11-08 10:45:10,206 - INFO - Defining strategies for MapieRegressor
+2024-11-08 10:45:10,206 - INFO - Fitting models and getting predictions for each strategy
+2024-11-08 10:45:10,206 - INFO - Processing strategy: naive
+2024-11-08 10:45:10,206 - INFO - Combining test with calibration data for strategy: naive
+2024-11-08 10:45:10,274 - INFO - Processing strategy: split
+2024-11-08 10:45:10,275 - INFO - Processing strategy: jackknife
+2024-11-08 10:45:10,275 - INFO - Combining test with calibration data for strategy: jackknife
+2024-11-08 10:45:40,325 - INFO - Processing strategy: jackknife_plus
+2024-11-08 10:45:40,327 - INFO - Combining test with calibration data for strategy: jackknife_plus
+2024-11-08 10:46:10,150 - INFO - Processing strategy: cv_plus
+2024-11-08 10:46:10,151 - INFO - Combining test with calibration data for strategy: cv_plus
+2024-11-08 10:46:10,802 - INFO - Processing strategy: jackknife_plus_ab
+2024-11-08 10:46:10,802 - INFO - Combining test with calibration data for strategy: jackknife_plus_ab
+2024-11-08 10:46:14,268 - INFO - Saving results to ../pickles/02-Non-Adaptive.pkl
+2024-11-08 10:46:14,269 - INFO - Results successfully saved to ../pickles/02-Non-Adaptive.pkl
