@@ -234,10 +234,10 @@ def plot_predictions_with_ci(y_test, y_pred, ci_lower, ci_upper, ax=None, title=
     coverage = (1 - outside_ci.mean()) * 100  # Convert to percentage
     avg_interval_length = np.mean(ci_upper + ci_lower)
     
-    # Plot CIs that contain true value (gray)
+    # Plot CIs that contain true value (gray) with green dots
     ax.errorbar(y_test[~outside_ci], y_pred[~outside_ci], 
                yerr=[ci_lower[~outside_ci], ci_upper[~outside_ci]], 
-               fmt='o', ecolor='gray', alpha=0.5, label='CI (True Value Inside)')
+               fmt='o', ecolor='gray', alpha=0.5, label='CI (True Value Inside)', color='green', mfc='green', mec='green', mew=0.5, ms=5)
     
     # Plot CIs that don't contain true value (red)
     ax.errorbar(y_test[outside_ci], y_pred[outside_ci], 

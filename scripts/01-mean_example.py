@@ -5,7 +5,6 @@ import math
 import matplotlib.pyplot as plt
 import seaborn as sns 
 from typing import Tuple, List
-
 from sklearn.model_selection import train_test_split
 
 from utils import load_prep_data, check_coverage
@@ -117,7 +116,67 @@ class FullConformalMean:
         
         return (lower, upper)
     
-
+# Create plots for both methods
+def plot_conformal_intervals(method_name: str, y_test: np.ndarray, lower: float, upper: float, mean_value: float, coverage: float, avg_interval_length: float) -> None:
+    sns.set_theme(style="darkgrid")
+    palette = sns.color_palette("viridis", 3)
+    
+    fig, ax = plt.subplots(figsize=(14, 7))
+    
+    # Create prediction interval grid
+    lower_grid = np.repeat(lower, len(y_test))
+    upper_grid = np.repeat(upper, len(y_test))
+    
+    # Scatter plot
+    ax.scatter(
+        range(len(y_test)),
+        y_test,
+        label="Test Data",
+        color=palette[0],
+        alpha=0.8,
+        edgecolor="k",
+        s=60
+    )
+    
+    # Prediction interval
+    ax.fill_between(
+        range(len(y_test)),
+        lower_grid,
+        upper_grid,
+        color=palette[1],
+        alpha=0.4,
+        label="Prediction Interval"
+    )
+    
+    # Mean line
+    ax.axhline(
+        y=mean_value,
+        color="red",
+        linestyle="--",
+        linewidth=2.5,
+        label=f"Mean: {mean_value:.2f}"
+    )
+    
+    # Labels and title
+    ax.set_xlabel("Sample Index", fontsize=14)
+    ax.set_ylabel("Log House Value ($)", fontsize=14)
+    ax.set_title(f"{method_name} Prediction Interval", fontsize=18, weight='bold')
+    
+    # Coverage annotation
+    annotation_text = f'Coverage: {100*coverage:.3f}%\nAvg Interval Length: {avg_interval_length:.2f}'
+    ax.annotate(annotation_text,
+                xy=(0.98, 0.02),
+                xycoords='axes fraction',
+                bbox=dict(facecolor='white', edgecolor='gray', alpha=0.8),
+                ha='right',
+                va='bottom')
+    
+    ax.legend(loc="upper right", fontsize=12)
+    ax.set_xticks([])
+    
+    plt.tight_layout()
+    plt.savefig(plot_path + f"{method_name.lower().replace(' ', '_')}_mean_prediction_interval.png", dpi=300)
+    plt.show()
 
 # %%
 # ------------------------------------------------------------------------------
@@ -125,7 +184,7 @@ class FullConformalMean:
 # ------------------------------------------------------------------------------
 # Prep data
 df = load_prep_data(polynomial=False)
-y = df["SalePrice"].to_numpy()
+y = np.log(df["SalePrice"].to_numpy())
 y_train, y_test = train_test_split(y, test_size=0.3, random_state=123)
 
 # %%
@@ -141,83 +200,65 @@ print(f"Mean: {np.mean(y_train)}")
 print(f"Lower: {lower}")
 print(f"Upper: {upper}")
 print(f"Coverage on test data: {coverage}")
-
+avg_interval_length= upper - lower
 # %%
 # Get qhat value
 print(f"qhat: {np.abs(np.mean(y_train) -  lower)}")
 print(f"Mean: {np.mean(y_train)}")
 
 # %%
-# ------------------------------------------------------------------------------
-# Plot the prediction interval
-# ------------------------------------------------------------------------------
-lower_grid = np.repeat(lower, len(y_test))
-upper_grid = np.repeat(upper, len(y_test))
-
-
-mean_value = np.mean(y_train)
-
 # Set a seaborn darkgrid theme with a custom palette
 sns.set_theme(style="darkgrid")
 palette = sns.color_palette("viridis", 3)
 
-fig, ax = plt.subplots(figsize=(14, 7))
-
-# Scatter plot
-ax.scatter(
-    range(len(y_test)),
-    y_test,
-    label="Test Data",
-    color=palette[0],
-    alpha=0.8,
-    edgecolor="k",
-    s=60
-)
-
-# Prediction interval
-ax.fill_between(
-    range(len(y_test)),
-    lower_grid,
-    upper_grid,
-    color=palette[1],
-    alpha=0.4,
-    label="Prediction Interval"
-)
-
-# Mean line
-ax.axhline(
-    y=mean_value,
-    color="red",
-    linestyle="--",
-    linewidth=2.5,
-    label=f"Mean: {mean_value:.2f}"
-)
+plot_conformal_intervals("Full Conformal", y_test, lower, upper, np.mean(y_train), coverage, avg_interval_length)
 
 
-# Labels and title
-ax.set_xlabel("Sample Index", fontsize=14)
-ax.set_ylabel("House Value ($)", fontsize=14)
-ax.set_title("Test Data Prediction Interval", fontsize=18, weight='bold')
 
-# Coverage annotation
-ax.text(
-    0.98,
-    0.02,
-    f"Coverage: {coverage:.2f}",
-    transform=ax.transAxes,
-    ha="right",
-    va="bottom",
-    fontsize=13,
-    bbox=dict(facecolor='white', alpha=0.7, edgecolor='none')
-)
+# %%
+from sklearn.linear_model import LinearRegression
+from mapie.regression import MapieRegressor
+from mapie.subsample import Subsample
 
-# Legend
-ax.legend(loc="upper right", fontsize=12)
+X_train = np.ones_like(y_train).reshape(-1, 1)
+X_test = np.ones_like(y_test).reshape(-1, 1)
 
-# Remove x-axis ticks if desired
-ax.set_xticks([])
 
-plt.tight_layout()
-plt.savefig(plot_path + "mean_prediction_interval.png", dpi=300)
-plt.show()
 
+# %%
+STRATEGIES = {
+    "naive": dict(method="naive"),
+    "split": dict(cv="split", method="base"),
+    "jackknife": dict(method="base", cv=-1, n_jobs=-1),
+    "jackknife_plus": dict(method="plus", cv=-1, n_jobs=-1),
+    "cv_plus": dict(method="plus", cv=10, n_jobs=-1),
+    "jackknife_plus_ab": dict(method="plus", cv=Subsample(n_resamplings=50), n_jobs=-1),
+}
+y_pred = {}
+y_pis = {}
+for strategy, params in STRATEGIES.items():
+    # Combine test with calibration data
+    
+    mapie = MapieRegressor(LinearRegression(fit_intercept=False), **params)
+    mapie.fit(X_train, y_train)
+    y_pred[strategy], y_pis[strategy] = mapie.predict(X_test, alpha=0.05)
+# %%
+
+def clean_results(y_pred, y_pis, y_test):
+    # Returns lower: float, upper: float, mean_value: float, coverage: float, avg_interval_length: float
+    lower = y_pis[:, 0, 0][0]
+    upper = y_pis[:, 1, 0][0]
+    mean_value = y_pred[0]
+    coverage = check_coverage(lower, upper, y_test)
+    avg_interval_length = upper - lower
+    return lower, upper, mean_value, coverage, avg_interval_length
+
+def clean_title(strategy: str) -> str:
+    return strategy.replace("_plus", "+").replace("_", " ").replace("cv", "CV").title()
+
+# %%
+for strategy in STRATEGIES.keys():
+    strat_clean = clean_title(strategy)
+    lower, upper, mean_value, coverage, avg_interval_length = clean_results(y_pred[strategy], y_pis[strategy], y_test)
+    plot_conformal_intervals(strat_clean, y_test, lower, upper, mean_value, coverage, avg_interval_length)
+# %%

@@ -92,7 +92,7 @@ logging.info(f"Alpha from LassoCV: {alpha}")
 logging.info("Defining strategies for MapieRegressor")
 STRATEGIES = {
     "naive": dict(method="naive"),
-    "split": dict(cv="prefit", method="base"),
+    "split": dict(cv="split", method="base"),
     "jackknife": dict(method="base", cv=-1, n_jobs=-1),
     "jackknife_plus": dict(method="plus", cv=-1, n_jobs=-1),
     "cv_plus": dict(method="plus", cv=10, n_jobs=-1),
@@ -111,11 +111,11 @@ for strategy, params in STRATEGIES.items():
     #     y_pred[strategy], y_pis[strategy] = mapie.predict(X_test, alpha=0.05)
     # else:
     logging.info(f"Combining test with calibration data for strategy: {strategy}")
-    # Combine test with calibration data
-    X_test_cal = np.vstack([X_test, X_cal])
-    y_test_cal = np.concatenate([y_test, y_cal])
+    # Combine train with calibration data
+    X_train_cal = np.vstack([X_train, X_cal])
+    y_train_cal = np.concatenate([y_train, y_cal])
     mapie = MapieRegressor(Lasso(alpha=alpha), **params)
-    mapie.fit(X_test_cal, y_test_cal)
+    mapie.fit(X_train_cal, y_train_cal)
     y_pred[strategy], y_pis[strategy] = mapie.predict(X_test, alpha=0.05)
 
 # Pickle results
