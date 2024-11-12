@@ -263,6 +263,125 @@ for strategy in STRATEGIES.keys():
     strat_clean = clean_title(strategy)
     lower, upper, mean_value, coverage, avg_interval_length = clean_results(y_pred[strategy], y_pis[strategy], y_test)
     plot_conformal_intervals(strat_clean, y_test, lower, upper, mean_value, coverage, avg_interval_length)
+
+# %%
+def plot_full_conformal_grouped(y_test, groups_test, lower, upper, mean_value):
+    sns.set_theme(style="darkgrid")
+    palette = sns.color_palette("viridis", 3)
+    
+    fig, ax = plt.subplots(figsize=(14, 7))
+    
+    # Combine groups as in Mondrian
+    groups_test_combined = groups_test.copy()
+    groups_test_combined[groups_test <= 4] = 4
+    groups_test_combined[groups_test >= 9] = 9
+    
+    # Sort everything by group
+    sort_idx = np.argsort(groups_test_combined)
+    y_test_sorted = y_test[sort_idx]
+    groups_test_sorted = groups_test_combined[sort_idx]
+    
+    # Scatter plot
+    ax.scatter(
+        range(len(y_test)),
+        y_test_sorted,
+        label="Test Data",
+        color=palette[0],
+        alpha=0.8,
+        edgecolor="k",
+        s=60
+    )
+    
+    # Overall prediction interval
+    ax.fill_between(
+        range(len(y_test)),
+        [lower] * len(y_test),
+        [upper] * len(y_test),
+        color=palette[1],
+        alpha=0.4,
+        label="Prediction Interval"
+    )
+    
+    # Mean line
+    ax.axhline(
+        y=mean_value,
+        color="red",
+        linestyle="--",
+        linewidth=2.5,
+        label=f"Mean: {mean_value:.2f}"
+    )
+    
+    # Calculate and annotate coverage for each group
+    current_idx = 0
+    for group in sorted(np.unique(groups_test_sorted)):
+        group_mask = groups_test_sorted == group
+        group_size = np.sum(group_mask)
+        
+        if group_size > 0:
+            # Add vertical line at group boundary
+            if current_idx > 0:  # Don't add line at the start
+                ax.axvline(x=current_idx, color='gray', linestyle=':', alpha=0.5)
+            
+            # Calculate group coverage
+            group_y = y_test[groups_test_combined == group]
+            coverage = np.mean((group_y >= lower) & (group_y <= upper))
+            interval_length = upper - lower
+            
+            # Determine group label
+            if group == 4:
+                group_label = "Groups 1-4"
+            elif group == 9:
+                group_label = "Groups 9-10"
+            else:
+                group_label = f"Group {group}"
+            
+            # Add annotation within the interval
+            mid_point = current_idx + group_size/2
+            
+            # Adjust y-position based on group number
+            if group <= 6:
+                y_pos = mean_value + (upper - mean_value) * 0.5  # Higher position
+            else:
+                y_pos = mean_value - (mean_value - lower) * 0.5  # Lower position
+            
+            ax.annotate(
+                f'{group_label}\nCoverage: {coverage:.1%}\nLength: {interval_length:.2f}',
+                xy=(mid_point, y_pos),
+                ha='center',
+                va='center',
+                bbox=dict(boxstyle='round,pad=0.5', fc='white', ec='gray', alpha=0.8),
+                fontsize=8
+            )
+            
+            current_idx += group_size
+    
+    # Calculate overall coverage
+    overall_coverage = np.mean((y_test >= lower) & (y_test <= upper))
+    
+    # Labels and title
+    ax.set_xlabel("Sample Index (sorted by Overall Quality)", fontsize=14)
+    ax.set_ylabel("Log House Value ($)", fontsize=14)
+    ax.set_title("Full Conformal Prediction Interval by Overall Quality", fontsize=18, weight='bold')
+    
+    # Add overall coverage annotation
+    ax.text(0.02, 0.98, f'Overall Coverage: {overall_coverage:.1%}',
+            transform=ax.transAxes,
+            bbox=dict(facecolor='white', edgecolor='gray', alpha=0.8),
+            verticalalignment='top')
+    
+    ax.legend(loc="upper right", fontsize=12)
+    
+    plt.tight_layout()
+    plt.savefig(plot_path + "full_conformal_mean_prediction_interval_grouped.png", dpi=300)
+    plt.show()
+# Use the exact same intervals calculated from FullConformalMean
+overall_qual_test = X_test['OverallQual'].values
+plot_full_conformal_grouped(y_test, overall_qual_test, lower, upper, np.mean(y_train))
+# %%
+# [=========================================================================================================================]
+# [=========================================================================================================================]
+# [=========================================================================================================================]
+
 # %%
 # Subset of variables with varying degree of coverage
 def analyze_coverage_disparity(X_test: pd.DataFrame, y_test: np.ndarray, 
@@ -805,6 +924,30 @@ def plot_mondrian_intervals(y_test, groups_test, intervals, mean_by_group):
     plt.savefig(plot_path + "mondrian_mean_prediction_interval.png", dpi=300)
     plt.show()
 
+mcm = MondrianConformalMean()
+overall_qual_train = X_train['OverallQual'].values
+overall_qual_test = X_test['OverallQual'].values
+
+mcm.fit(y_train, overall_qual_train)
+intervals = mcm.predict(alpha=0.05)
+
+# Calculate mean by group for visualization
+mean_by_group = {group: np.mean(data) for group, data in mcm.group_data_.items()}
+
+# Plot results
+plot_mondrian_intervals(y_test, overall_qual_test, intervals, mean_by_group)
+
+# Calculate and print coverage by group
+for group in sorted(intervals.keys()):
+    group_mask = overall_qual_test == group
+    group_y = y_test[group_mask]
+    lower, upper = intervals[group]
+    coverage = np.mean((group_y >= lower) & (group_y <= upper))
+    interval_length = upper - lower
+    print(f"Group {group}:")
+    print(f"  Coverage: {coverage:.3f}")
+    print(f"  Interval length: {interval_length:.3f}")
+
 # %%
 class MondrianConformalMean:
     """
@@ -910,6 +1053,14 @@ def plot_mondrian_intervals(y_test, groups_test, intervals, global_mean):
         s=60
     )
     
+    # Calculate overall coverage
+    in_interval = np.zeros_like(y_test, dtype=bool)
+    for group in intervals.keys():
+        group_mask = groups_test_combined == group
+        lower, upper = intervals[group]
+        in_interval[group_mask] = (y_test[group_mask] >= lower) & (y_test[group_mask] <= upper)
+    overall_coverage = np.mean(in_interval)
+    
     # Plot intervals for each group
     current_idx = 0
     for group in sorted(intervals.keys()):
@@ -982,12 +1133,6 @@ def plot_mondrian_intervals(y_test, groups_test, intervals, global_mean):
     ax.set_title("Mondrian Conformal Prediction Intervals by Overall Quality", fontsize=18, weight='bold')
     
     # Add overall coverage annotation
-    overall_coverage = np.mean([
-        (y_test[groups_test_combined == group] >= intervals[group][0]) & 
-        (y_test[groups_test_combined == group] <= intervals[group][1])
-        for group in intervals.keys()
-    ])
-    
     ax.text(0.02, 0.98, f'Overall Coverage: {overall_coverage:.1%}',
             transform=ax.transAxes,
             bbox=dict(facecolor='white', edgecolor='gray', alpha=0.8),
@@ -996,9 +1141,8 @@ def plot_mondrian_intervals(y_test, groups_test, intervals, global_mean):
     ax.legend(loc="upper right", fontsize=12)
     
     plt.tight_layout()
-    plt.savefig(plot_path + "mondrian_mean_prediction_interval.png", dpi=300)
+    plt.savefig(plot_path + "mondrian_mean_prediction_interval2.png", dpi=300)
     plt.show()
-
 # Fit and predict
 mcm = MondrianConformalMean()
 overall_qual_train = X_train['OverallQual'].values
@@ -1023,4 +1167,4 @@ for group in sorted(intervals.keys()):
     print(f"Group {group}:")
     print(f"  Coverage: {coverage:.3f}")
     print(f"  Interval length: {interval_length:.3f}")
-# %%
+
