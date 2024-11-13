@@ -7,6 +7,7 @@ from sklearn.metrics import mean_pinball_loss
 
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.preprocessing import OneHotEncoder
 
 def load_prep_data(
     polynomial: bool = False,
@@ -42,6 +43,44 @@ def load_prep_data(
         df = pd.concat([X_poly, y], axis=1)  # combine transformed features with target variable
 
     return df
+
+def prep_conditional_data(df: pd.DataFrame):
+    """
+    Prepare the conditional data for the conditional quantile regression model.
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The DataFrame containing the data.
+    
+    Returns
+    -------
+    np.ndarray
+        The features for the conditional quantile regression model.
+    np.ndarray
+        The target variable for the conditional quantile regression model.
+    """
+    def _combine_groups(groups):
+        """
+        Helper method to combine specified groups.
+        """
+        new_groups = groups.copy()
+        # Combine groups 1-4
+        new_groups[groups <= 4] = 4
+        # Combine groups 9-10
+        new_groups[groups >= 9] = 9
+        return new_groups
+    
+    groups = df['OverallQual'].values
+    y = np.log(df['SalePrice'].values)
+
+    # Combine groups
+    groups = _combine_groups(groups)
+
+    # Turn into dummy variables using one-hot encoding
+    # groups = pd.get_dummies(groups, drop_first=False).values
+    X = OneHotEncoder().fit_transform(groups.reshape(-1, 1)).toarray()
+    return X, y, groups
 
 
 def check_coverage(
@@ -283,3 +322,155 @@ plot_predictions_with_ci(y_test_method2, y_pred_method2,
 plt.tight_layout()
 plt.show()
 """
+
+def plot_conditional_intervals(
+    y_test: np.ndarray,
+    y_pred: np.ndarray,
+    y_pis: np.ndarray,
+    groups_test: np.ndarray,
+    title: str = "Group-Specific Predictions with Conformal Prediction Intervals"
+) -> None:
+    """
+    Plot prediction intervals with group-specific coverage and length metrics.
+
+    This function creates a visualization of prediction intervals for different groups,
+    showing actual values, predictions, and confidence intervals. It includes
+    annotations for group-specific coverage rates and interval lengths.
+
+    Parameters
+    ----------
+    y_test : np.ndarray
+        True target values
+    y_pred : np.ndarray
+        Predicted mean values
+    y_pis : np.ndarray
+        Prediction intervals array of shape (n_samples, 2, n_intervals)
+        where [:, 0, :] are lower bounds and [:, 1, :] are upper bounds
+    groups_test : np.ndarray
+        Array of group labels for each test sample
+
+    Returns
+    -------
+    None
+        Displays the plot using matplotlib
+    """
+    sns.set_theme(style="darkgrid")
+    palette = sns.color_palette("viridis", 3)
+    
+    fig, ax = plt.subplots(figsize=(14, 7))
+    
+    # Combine groups in test data
+    groups_test_combined = groups_test.copy()
+    groups_test_combined[groups_test <= 4] = 4
+    groups_test_combined[groups_test >= 9] = 9
+    
+    # Sort everything by group for visualization
+    sort_idx = np.argsort(groups_test_combined)
+    y_test_sorted = y_test[sort_idx]
+    y_pred_sorted = y_pred[sort_idx]
+    y_pis_sorted = y_pis[sort_idx]
+    groups_test_sorted = groups_test_combined[sort_idx]
+    
+    # Scatter plot of actual values
+    ax.scatter(
+        range(len(y_test)),
+        y_test_sorted,
+        label="Test Data",
+        color=palette[0],
+        alpha=0.8,
+        edgecolor="k",
+        s=60
+    )
+    
+    # Calculate overall coverage and average length
+    in_interval = (y_test >= y_pis[:, 0, 0]) & (y_test <= y_pis[:, 1, 0])
+    overall_coverage = np.mean(in_interval)
+    average_length = np.mean(y_pis[:, 1, 0] - y_pis[:, 0, 0])
+    
+    # Plot continuous prediction intervals and mean
+    x_range = np.arange(len(y_test))
+    
+    # Plot prediction intervals as continuous lines
+    ax.fill_between(
+        x_range,
+        y_pis_sorted[:, 0, 0],
+        y_pis_sorted[:, 1, 0],
+        color=palette[1],
+        alpha=0.4,
+        label="Prediction Interval"
+    )
+    
+    # Plot mean prediction as continuous line
+    ax.plot(
+        x_range,
+        y_pred_sorted,
+        color='red',
+        linestyle='--',
+        label="Conditional Prediction",
+        linewidth=2
+    )
+    
+    # Add group annotations
+    current_idx = 0
+    for group in sorted(np.unique(groups_test_combined)):
+        group_mask = groups_test_sorted == group
+        group_size = np.sum(group_mask)
+        
+        if group_size > 0:
+            # Calculate group-specific metrics
+            group_y = y_test_sorted[group_mask]
+            group_lower = y_pis_sorted[group_mask, 0, 0]
+            group_upper = y_pis_sorted[group_mask, 1, 0]
+            group_coverage = np.mean((group_y >= group_lower) & (group_y <= group_upper))
+            interval_length = np.mean(group_upper - group_lower)
+            
+            # Add annotation for this group
+            mid_point = current_idx + group_size/2
+            
+            # Determine label text based on group
+            if group == 4:
+                group_label = "Groups 1-4"
+            elif group == 9:
+                group_label = "Groups 9-10"
+            else:
+                group_label = f"Group {group}"
+            
+            # Determine if annotation should be above or below
+            if group == 9:  # Place these groups' labels below
+                y_pos = np.min(group_lower)
+                vert_offset = -10
+                vert_align = 'top'
+            else:  # Place other groups' labels above
+                y_pos = np.max(group_upper)
+                vert_offset = 10
+                vert_align = 'bottom'
+            
+            ax.annotate(
+                f'{group_label}\nCoverage: {group_coverage:.1%}\nLength: {interval_length:.2f}',
+                xy=(mid_point, y_pos),
+                xytext=(0, vert_offset),
+                textcoords='offset points',
+                ha='center',
+                va=vert_align,
+                bbox=dict(boxstyle='round,pad=0.5', fc='white', ec='gray', alpha=0.8),
+                fontsize=8
+            )
+            
+            current_idx += group_size
+    
+    # Labels and title
+    ax.set_xlabel("Sample Index (sorted by Overall Quality)", fontsize=14)
+    ax.set_ylabel("Log House Value ($)", fontsize=14)
+    ax.set_title(title, fontsize=18, weight='bold')
+    
+    # Add overall coverage and average length annotations
+    ax.text(0.02, 0.98, 
+            f'Overall Coverage: {overall_coverage:.1%}\nAverage Length: {average_length:.2f}',
+            transform=ax.transAxes,
+            bbox=dict(facecolor='white', edgecolor='gray', alpha=0.8),
+            verticalalignment='top')
+    
+    ax.legend(loc="upper right", fontsize=12)
+    
+    plt.tight_layout()
+    plt.show()
