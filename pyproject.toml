@@ -14,6 +14,7 @@ dependencies = [
     "numpy>=2.1.2",
     "pandas>=2.2.3",
     "pip>=24.2",
+    "plotnine>=0.14.1",
     "requests>=2.32.3",
     "ruff>=0.7.3",
     "scikit-learn>=1.5.2",
